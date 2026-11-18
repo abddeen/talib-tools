@@ -3,7 +3,7 @@ import AppKit
 
 public struct PopupView: View {
     @EnvironmentObject var appState: AppState
-    @State private var showingImagePreview = false
+    @State private var enteredText: String = ""
     
     public var body: some View {
         VStack(spacing: 0) {
@@ -32,7 +32,7 @@ public struct PopupView: View {
             // Bottom Status & Quick Action Bar
             bottomBar
         }
-        .frame(width: 440, height: 560)
+        .frame(width: 440, height: 580)
         .background(Color(NSColor.windowBackgroundColor))
     }
     
@@ -89,7 +89,10 @@ public struct PopupView: View {
     // MARK: - Translation View
     private var translationContentView: some View {
         ScrollView {
-            VStack(spacing: 14) {
+            VStack(spacing: 12) {
+                // Direct Text Input Card (Always accessible)
+                textInputCard
+                
                 if appState.isProcessing || appState.isCapturing {
                     processingView
                 } else if let error = appState.errorMessage {
@@ -122,6 +125,137 @@ public struct PopupView: View {
                 }
             }
             .padding(14)
+        }
+    }
+    
+    // MARK: - Direct Text Input Card
+    private var textInputCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                HStack(spacing: 5) {
+                    Image(systemName: "square.and.pencil")
+                        .font(.system(size: 12))
+                        .foregroundColor(.accentColor)
+                    Text("Enter Text or Screenshot")
+                        .font(.system(size: 12, weight: .bold))
+                }
+                
+                Spacer()
+                
+                if !enteredText.isEmpty {
+                    Button(action: {
+                        enteredText = ""
+                    }) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 10))
+                            Text("Clear")
+                                .font(.caption2)
+                        }
+                        .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                Button(action: {
+                    if let clipboard = NSPasteboard.general.string(forType: .string) {
+                        enteredText = clipboard
+                    }
+                }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "doc.on.clipboard")
+                            .font(.system(size: 10))
+                        Text("Paste")
+                            .font(.caption2)
+                    }
+                    .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Paste from clipboard")
+            }
+            
+            ZStack(alignment: .topLeading) {
+                if enteredText.isEmpty {
+                    Text("Type or paste text here to translate...")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary.opacity(0.6))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 8)
+                        .allowsHitTesting(false)
+                }
+                
+                TextEditor(text: $enteredText)
+                    .font(.system(size: 13))
+                    .frame(minHeight: 48, maxHeight: 80)
+                    .scrollContentBackground(.hidden)
+                    .padding(4)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color(NSColor.textBackgroundColor).opacity(0.5))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+            )
+            
+            HStack {
+                Button(action: {
+                    appState.triggerCapture()
+                }) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "camera")
+                            .font(.system(size: 11))
+                        Text("Screenshot (\(appState.preferences.shortcut.displayString))")
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(5)
+                }
+                .buttonStyle(.plain)
+                .help("Capture a section of your screen")
+                
+                Spacer()
+                
+                Button(action: {
+                    submitEnteredText()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.right.circle.fill")
+                            .font(.caption)
+                        Text("Translate")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(enteredText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray.opacity(0.25) : Color.accentColor)
+                    .foregroundColor(.white)
+                    .cornerRadius(5)
+                }
+                .buttonStyle(.plain)
+                .disabled(enteredText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || appState.isProcessing)
+                .keyboardShortcut(.return, modifiers: [.command])
+            }
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.gray.opacity(0.18), lineWidth: 1)
+        )
+    }
+    
+    private func submitEnteredText() {
+        let text = enteredText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        Task {
+            await appState.translateDirectText(text)
         }
     }
     
@@ -172,10 +306,10 @@ public struct PopupView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 HStack(spacing: 5) {
-                    Image(systemName: "text.viewfinder")
+                    Image(systemName: result.image != nil ? "camera.viewfinder" : "keyboard")
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
-                    Text("Original Source")
+                    Text(result.image != nil ? "Screenshot Source" : "Entered Text")
                         .font(.system(size: 12, weight: .bold))
                 }
                 
@@ -215,6 +349,15 @@ public struct PopupView: View {
                             RoundedRectangle(cornerRadius: 6)
                                 .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                         )
+                } else {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.accentColor.opacity(0.1))
+                            .frame(width: 32, height: 32)
+                        Image(systemName: "text.alignleft")
+                            .font(.system(size: 14))
+                            .foregroundColor(.accentColor)
+                    }
                 }
                 
                 Text(result.originalText)
@@ -243,47 +386,31 @@ public struct PopupView: View {
     
     // MARK: - Empty Welcome State
     private var emptyWelcomeState: some View {
-        VStack(spacing: 16) {
-            Spacer(minLength: 40)
+        VStack(spacing: 14) {
+            Spacer(minLength: 20)
             
             ZStack {
                 Circle()
                     .fill(Color.accentColor.opacity(0.1))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "camera.viewfinder")
-                    .font(.system(size: 38))
+                    .frame(width: 64, height: 64)
+                Image(systemName: "translate")
+                    .font(.system(size: 30))
                     .foregroundColor(.accentColor)
             }
             
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
                 Text("Ready to Translate")
-                    .font(.title3)
+                    .font(.headline)
                     .fontWeight(.bold)
                 
-                Text("Press your global shortcut or click below to screenshot any section of the screen.")
+                Text("Type text in the box above, or press \(appState.preferences.shortcut.displayString) to screenshot any screen section.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 28)
+                    .padding(.horizontal, 24)
             }
             
-            Button(action: {
-                appState.triggerCapture()
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "camera")
-                    Text("Capture Screen (\(appState.preferences.shortcut.displayString))")
-                        .fontWeight(.semibold)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(Color.accentColor)
-                .foregroundColor(.white)
-                .cornerRadius(8)
-            }
-            .buttonStyle(.plain)
-            
-            Spacer(minLength: 40)
+            Spacer(minLength: 20)
         }
     }
     

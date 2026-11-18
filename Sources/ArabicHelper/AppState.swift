@@ -128,6 +128,59 @@ public final class AppState: ObservableObject {
         }
     }
     
+    /// Translates directly entered text without taking a screenshot
+    public func translateDirectText(_ text: String) async {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard !isProcessing else { return }
+        
+        self.isProcessing = true
+        self.errorMessage = nil
+        self.statusMessage = "Translating entered text..."
+        self.activeTab = .translation
+        
+        do {
+            let initialLang = OCRService.detectLanguage(for: trimmed)
+            let translation = try await TranslationService.shared.translateToBoth(
+                text: trimmed,
+                hintedLanguageCode: initialLang.code
+            )
+            
+            let result = TranslationResult(
+                image: nil,
+                originalText: translation.originalText,
+                detectedLanguageCode: translation.detectedLanguageCode,
+                detectedLanguageName: translation.detectedLanguageName,
+                arabicTranslation: translation.arabicText,
+                englishTranslation: translation.englishText
+            )
+            
+            self.currentResult = result
+            self.history.insert(result, at: 0)
+            if self.history.count > 30 {
+                self.history.removeLast()
+            }
+            
+            switch self.preferences.autoCopyOption {
+            case .arabic:
+                self.copyToPasteboard(result.arabicTranslation)
+            case .english:
+                self.copyToPasteboard(result.englishTranslation)
+            case .none:
+                break
+            }
+            
+            self.statusMessage = "Translation complete!"
+            self.isProcessing = false
+            
+        } catch {
+            print("Direct translation error: \(error)")
+            self.errorMessage = error.localizedDescription
+            self.statusMessage = "Translation failed"
+            self.isProcessing = false
+        }
+    }
+    
     public func copyToPasteboard(_ text: String) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()

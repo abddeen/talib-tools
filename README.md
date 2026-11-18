@@ -12,6 +12,7 @@
 | **Section Screenshot** | Invokes macOS interactive selection (`/usr/sbin/screencapture -i`) providing the native crosshair selection tool. |
 | **Automatic OCR & Language Detection** | Powered by Apple's **Vision framework** (`VNRecognizeTextRequestRevision3`) with support for Arabic, English, and 30+ languages. Automatic language identification via **NaturalLanguage framework** and Unicode script analysis. |
 | **Dual Translation (Arabic & English)** | Automatically identifies source text: <br>• If source is **Arabic**, displays original Arabic and translates to **English**.<br>• If source is **English**, displays original English and translates to **Arabic**.<br>• If source is **any other language** (French, German, Spanish, etc.), concurrently translates to **both Arabic and English**! |
+| **Direct Text Entry** | In addition to screenshots, users can directly type or paste text into the menu bar popup for immediate auto-detection and dual translation. Includes one-click paste from clipboard and `⌘ + Return` quick translate. |
 | **Menu Bar Item & Popup** | Runs as a background accessory app (`LSUIElement = true`). Upon capture, automatically pops open a SwiftUI interface displaying both translations, RTL Arabic typography, one-click copy, audio pronunciation, and capture history. |
 
 ---
@@ -42,14 +43,15 @@ Or double-click `build/ArabicHelper.app` in Finder.
 
 ## 🖥️ How to Use
 
-1. **Launch ArabicHelper**: The app appears in your macOS top menu bar as `ع/A` (or book icon).
-2. **Press Shortcut**: Press **`⌘ + ⇧ + 2`** (or your custom shortcut).
-3. **Select Screen Area**: Drag the crosshairs over any text on screen (image, PDF, website, chat, video subtitle).
-4. **Instant Dual Translation**: The menu bar popover drops down automatically showing:
-   - **Original Text** with detected language badge (e.g. `🌐 Detected: English`) and screenshot thumbnail.
-   - **Arabic Translation (العربية)** in clean RTL font with a **Copy** button and **Listen** audio button.
-   - **English Translation** with a **Copy** button and **Listen** audio button.
-5. **Change Shortcut**: Click the **Settings** tab in the popup to record any new shortcut combination (e.g. `⌃ ⌥ A`, `⌘ ⇧ 4`, etc.).
+### Option A: Screenshot Any Section of the Screen
+1. Press **`⌘ + ⇧ + 2`** (or your custom shortcut).
+2. Drag crosshairs over any text on your screen (images, PDFs, browsers, apps).
+3. The menu bar popup appears automatically with the extracted text and dual translations!
+
+### Option B: Direct Text Entry
+1. Click the menu bar icon `ع/A` to open the popup.
+2. Type or click **Paste** to insert text into the input box.
+3. Click **Translate** (or press **`⌘ + Return`**) to instantly see both Arabic and English translations!
 
 ---
 
