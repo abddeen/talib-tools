@@ -23,6 +23,7 @@ public final class AppState: ObservableObject {
     @Published public var history: [TranslationResult] = []
     @Published public var preferences: UserPreferences
     @Published public var activeTab: AppTab = .translation
+    @Published public var activeTranslationTab: TranslationTab = .translation
     @Published public var isRecordingShortcut: Bool = false
     
     public var onTranslationCompleted: (() -> Void)?
@@ -66,6 +67,7 @@ public final class AppState: ObservableObject {
         self.errorMessage = nil
         self.statusMessage = "Extracting text..."
         self.activeTab = .translation
+        self.activeTranslationTab = .translation
         
         do {
             // 1. OCR Text Recognition & Language Detection
@@ -138,6 +140,7 @@ public final class AppState: ObservableObject {
         self.errorMessage = nil
         self.statusMessage = "Translating entered text..."
         self.activeTab = .translation
+        self.activeTranslationTab = .translation
         
         do {
             let initialLang = OCRService.detectLanguage(for: trimmed)

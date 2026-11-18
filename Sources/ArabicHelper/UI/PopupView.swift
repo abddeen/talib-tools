@@ -4,6 +4,7 @@ import AppKit
 public struct PopupView: View {
     @EnvironmentObject var appState: AppState
     @State private var enteredText: String = ""
+    @State private var hansWehrStubWord: String? = nil
     
     public var body: some View {
         VStack(spacing: 0) {
@@ -102,29 +103,292 @@ public struct PopupView: View {
                 if let result = appState.currentResult {
                     // Original Source Card
                     originalSourceCard(result: result)
-                    
-                    // Arabic Translation Card
-                    TranslationCardView(
-                        title: "العربية (Arabic)",
-                        badge: "🇦🇪",
-                        text: result.arabicTranslation,
-                        isArabic: true,
-                        languageCode: "ar"
-                    )
-                    
-                    // English Translation Card
-                    TranslationCardView(
-                        title: "English",
-                        badge: "🇬🇧",
-                        text: result.englishTranslation,
-                        isArabic: false,
-                        languageCode: "en"
-                    )
-                } else if !appState.isProcessing && !appState.isCapturing && appState.errorMessage == nil {
-                    emptyWelcomeState
+                }
+                
+                // Translation Detail Tab Bar: Translation, Vocab, Hans Wehr
+                translationTabPicker
+                
+                // Content based on active translation tab
+                Group {
+                    switch appState.activeTranslationTab {
+                    case .translation:
+                        translationTabContent
+                    case .vocab:
+                        vocabTabContent
+                    case .hansWehr:
+                        hansWehrTabContent
+                    }
                 }
             }
             .padding(14)
+        }
+    }
+    
+    // MARK: - Translation Detail Tab Picker
+    private var translationTabPicker: some View {
+        Picker("", selection: $appState.activeTranslationTab) {
+            ForEach(TranslationTab.allCases) { tab in
+                Text(tab.rawValue).tag(tab)
+            }
+        }
+        .pickerStyle(.segmented)
+        .padding(.vertical, 2)
+    }
+    
+    // MARK: - Translation Tab Content
+    @ViewBuilder
+    private var translationTabContent: some View {
+        if let result = appState.currentResult {
+            // Arabic Translation Card
+            TranslationCardView(
+                title: "العربية (Arabic)",
+                badge: "🇦🇪",
+                text: result.arabicTranslation,
+                isArabic: true,
+                languageCode: "ar"
+            )
+            
+            // English Translation Card
+            TranslationCardView(
+                title: "English",
+                badge: "🇬🇧",
+                text: result.englishTranslation,
+                isArabic: false,
+                languageCode: "en"
+            )
+        } else if !appState.isProcessing && !appState.isCapturing && appState.errorMessage == nil {
+            emptyWelcomeState
+        }
+    }
+    
+    // MARK: - Vocab Tab Content
+    private var vocabTabContent: some View {
+        VStack(spacing: 14) {
+            Spacer(minLength: 24)
+            
+            ZStack {
+                Circle()
+                    .fill(Color.purple.opacity(0.12))
+                    .frame(width: 60, height: 60)
+                Image(systemName: "character.book.closed.fill")
+                    .font(.system(size: 26))
+                    .foregroundColor(.purple)
+            }
+            
+            VStack(spacing: 6) {
+                Text("Coming soon")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                
+                Text("Vocabulary list, flashcards, and review tools for your translations will be available here.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+            }
+            
+            Spacer(minLength: 24)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(NSColor.controlBackgroundColor).opacity(0.4))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.gray.opacity(0.15), lineWidth: 1)
+        )
+    }
+    
+    // MARK: - Hans Wehr Tab Content
+    private var detectedSingleArabicWord: String? {
+        if let resultWord = appState.currentResult?.singleArabicWord {
+            return resultWord
+        }
+        if appState.currentResult == nil {
+            return TranslationResult.extractSingleArabicWord(from: enteredText)
+        }
+        return nil
+    }
+    
+    @ViewBuilder
+    private var hansWehrTabContent: some View {
+        if let arabicWord = detectedSingleArabicWord {
+            // Option to Search the Hans Wehr Dictionary for single Arabic word
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    HStack(spacing: 6) {
+                        Image(systemName: "book.closed.fill")
+                            .font(.system(size: 13))
+                            .foregroundColor(.accentColor)
+                        Text("Hans Wehr Dictionary")
+                            .font(.system(size: 13, weight: .bold))
+                    }
+                    
+                    Spacer()
+                    
+                    Text("Single Arabic Word")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor.opacity(0.15))
+                        .foregroundColor(.accentColor)
+                        .cornerRadius(4)
+                }
+                
+                // Word Display Box
+                VStack(spacing: 6) {
+                    Text(arabicWord)
+                        .font(.system(size: 28, weight: .bold, design: .serif))
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .textSelection(.enabled)
+                    
+                    Text("Ready for dictionary root & definition lookup")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(NSColor.textBackgroundColor).opacity(0.6))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.18), lineWidth: 1)
+                )
+                
+                // Search Hans Wehr Dictionary Button (Stub)
+                Button(action: {
+                    withAnimation {
+                        hansWehrStubWord = arabicWord
+                    }
+                    appState.statusMessage = "Hans Wehr search for '\(arabicWord)' (stub)"
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 12, weight: .bold))
+                        Text("Search the Hans Wehr Dictionary")
+                            .font(.system(size: 12, weight: .bold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(Color.accentColor)
+                    .foregroundColor(.white)
+                    .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+                
+                if hansWehrStubWord == arabicWord {
+                    HStack(spacing: 8) {
+                        Image(systemName: "info.circle.fill")
+                            .foregroundColor(.accentColor)
+                        Text("Hans Wehr dictionary search for \"\(arabicWord)\" is coming soon (stub).")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                    .padding(8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.accentColor.opacity(0.1))
+                    )
+                }
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(NSColor.controlBackgroundColor).opacity(0.5))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+            )
+        } else if appState.currentResult != nil {
+            // Translation result exists, but neither original nor translated is a single Arabic word
+            VStack(spacing: 12) {
+                HStack(spacing: 6) {
+                    Image(systemName: "book.closed")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                    Text("Hans Wehr Dictionary")
+                        .font(.system(size: 13, weight: .bold))
+                    Spacer()
+                }
+                
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .foregroundColor(.orange)
+                        .font(.system(size: 16))
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Single Arabic Word Required")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                        Text("Hans Wehr Dictionary search is only available when the translated or original text is a single Arabic word.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.orange.opacity(0.1))
+                )
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(NSColor.controlBackgroundColor).opacity(0.5))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+            )
+        } else {
+            // No translation result yet and no entered Arabic word
+            VStack(spacing: 14) {
+                Spacer(minLength: 24)
+                
+                ZStack {
+                    Circle()
+                        .fill(Color.accentColor.opacity(0.1))
+                        .frame(width: 60, height: 60)
+                    Image(systemName: "book.closed")
+                        .font(.system(size: 26))
+                        .foregroundColor(.accentColor)
+                }
+                
+                VStack(spacing: 6) {
+                    Text("Hans Wehr Dictionary")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    
+                    Text("Translate or enter a single Arabic word to search the Hans Wehr Dictionary.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                }
+                
+                Spacer(minLength: 24)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(NSColor.controlBackgroundColor).opacity(0.4))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.gray.opacity(0.15), lineWidth: 1)
+            )
         }
     }
     

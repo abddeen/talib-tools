@@ -56,6 +56,7 @@ public struct HistoryView: View {
                                 .onTapGesture {
                                     appState.currentResult = item
                                     appState.activeTab = .translation
+                                    appState.activeTranslationTab = .translation
                                 }
                         }
                     }
