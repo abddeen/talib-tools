@@ -2,20 +2,20 @@
 import PackageDescription
 
 let package = Package(
-    name: "ArabicHelper",
+    name: "TalibTools",
     platforms: [
         .macOS(.v14)
     ],
     products: [
         .executable(
-            name: "ArabicHelper",
-            targets: ["ArabicHelper"]
+            name: "TalibTools",
+            targets: ["TalibTools"]
         )
     ],
     targets: [
         .executableTarget(
-            name: "ArabicHelper",
-            path: "Sources/ArabicHelper"
+            name: "TalibTools",
+            path: "Sources/TalibTools"
         )
     ]
 )

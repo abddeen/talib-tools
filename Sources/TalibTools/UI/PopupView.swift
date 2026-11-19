@@ -4,7 +4,14 @@ import AppKit
 public struct PopupView: View {
     @EnvironmentObject var appState: AppState
     @State private var enteredText: String = ""
-    @State private var hansWehrStubWord: String? = nil
+    
+    // Lexicon dictionary state
+    @State private var dictionaryResults: [DictionaryWord] = []
+    @State private var dictionarySearchedWord: String? = nil
+    @State private var isDictionaryLoading = false
+    @State private var dictionaryError: String? = nil
+    @State private var showingAllDictionaryResults = false
+    @State private var expandedDictionaryEntryID: String? = nil
     
     public var body: some View {
         VStack(spacing: 0) {
@@ -37,27 +44,37 @@ public struct PopupView: View {
         .background(Color(NSColor.windowBackgroundColor))
     }
     
+    // MARK: - Header App Icon
+    private var headerAppIconView: some View {
+        Group {
+            if let icon = NSImage(named: "AppIcon") {
+                Image(nsImage: icon)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 26, height: 26)
+                    .cornerRadius(5)
+            } else {
+                // Fallback when running outside the .app bundle
+                ZStack {
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(Color.accentColor)
+                        .frame(width: 26, height: 26)
+                    Image(systemName: "character.book.closed.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.white)
+                }
+            }
+        }
+    }
+    
     // MARK: - Header Bar
     private var headerBar: some View {
         HStack(spacing: 12) {
             // App Branding
             HStack(spacing: 7) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 7)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.accentColor, Color.purple],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 26, height: 26)
-                    Text("ع/A")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.white)
-                }
+                headerAppIconView
                 
-                Text("ArabicHelper")
+                Text("TalibTools")
                     .font(.system(size: 13, weight: .bold))
             }
             
@@ -81,7 +98,7 @@ public struct PopupView: View {
                     .foregroundColor(.secondary)
             }
             .buttonStyle(.plain)
-            .help("Quit ArabicHelper")
+            .help("Quit TalibTools")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -105,7 +122,7 @@ public struct PopupView: View {
                     originalSourceCard(result: result)
                 }
                 
-                // Translation Detail Tab Bar: Translation, Vocab, Hans Wehr
+                // Translation Detail Tab Bar: Translation, Vocab, Lexicon
                 translationTabPicker
                 
                 // Content based on active translation tab
@@ -115,8 +132,8 @@ public struct PopupView: View {
                         translationTabContent
                     case .vocab:
                         vocabTabContent
-                    case .hansWehr:
-                        hansWehrTabContent
+                    case .lexicon:
+                        lexiconTabContent
                     }
                 }
             }
@@ -202,7 +219,7 @@ public struct PopupView: View {
         )
     }
     
-    // MARK: - Hans Wehr Tab Content
+    // MARK: - Lexicon Tab Content
     private var detectedSingleArabicWord: String? {
         if let resultWord = appState.currentResult?.singleArabicWord {
             return resultWord
@@ -214,16 +231,16 @@ public struct PopupView: View {
     }
     
     @ViewBuilder
-    private var hansWehrTabContent: some View {
+    private var lexiconTabContent: some View {
         if let arabicWord = detectedSingleArabicWord {
-            // Option to Search the Hans Wehr Dictionary for single Arabic word
+            // Option to Search the Lexicon for single Arabic word
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     HStack(spacing: 6) {
                         Image(systemName: "book.closed.fill")
                             .font(.system(size: 13))
                             .foregroundColor(.accentColor)
-                        Text("Hans Wehr Dictionary")
+                        Text("Lexicon")
                             .font(.system(size: 13, weight: .bold))
                     }
                     
@@ -261,42 +278,34 @@ public struct PopupView: View {
                         .stroke(Color.gray.opacity(0.18), lineWidth: 1)
                 )
                 
-                // Search Hans Wehr Dictionary Button (Stub)
+                // Search Lexicon Button
                 Button(action: {
-                    withAnimation {
-                        hansWehrStubWord = arabicWord
+                    Task {
+                        await searchDictionary(for: arabicWord)
                     }
-                    appState.statusMessage = "Hans Wehr search for '\(arabicWord)' (stub)"
                 }) {
                     HStack(spacing: 6) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 12, weight: .bold))
-                        Text("Search the Hans Wehr Dictionary")
+                        if isDictionaryLoading {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .frame(width: 12, height: 12)
+                        } else {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 12, weight: .bold))
+                        }
+                        Text(isDictionaryLoading ? "Searching..." : "Search the Lexicon")
                             .font(.system(size: 12, weight: .bold))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
-                    .background(Color.accentColor)
+                    .background(isDictionaryLoading ? Color.accentColor.opacity(0.6) : Color.accentColor)
                     .foregroundColor(.white)
                     .cornerRadius(6)
                 }
                 .buttonStyle(.plain)
+                .disabled(isDictionaryLoading)
                 
-                if hansWehrStubWord == arabicWord {
-                    HStack(spacing: 8) {
-                        Image(systemName: "info.circle.fill")
-                            .foregroundColor(.accentColor)
-                        Text("Hans Wehr dictionary search for \"\(arabicWord)\" is coming soon (stub).")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                    }
-                    .padding(8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.accentColor.opacity(0.1))
-                    )
-                }
+                dictionaryResultsView(for: arabicWord)
             }
             .padding(12)
             .background(
@@ -307,6 +316,13 @@ public struct PopupView: View {
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(Color.gray.opacity(0.2), lineWidth: 1)
             )
+            .onChange(of: arabicWord) { _, _ in
+                dictionaryResults = []
+                dictionarySearchedWord = nil
+                dictionaryError = nil
+                showingAllDictionaryResults = false
+                expandedDictionaryEntryID = nil
+            }
         } else if appState.currentResult != nil {
             // Translation result exists, but neither original nor translated is a single Arabic word
             VStack(spacing: 12) {
@@ -314,7 +330,7 @@ public struct PopupView: View {
                     Image(systemName: "book.closed")
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
-                    Text("Hans Wehr Dictionary")
+                    Text("Lexicon")
                         .font(.system(size: 13, weight: .bold))
                     Spacer()
                 }
@@ -329,7 +345,7 @@ public struct PopupView: View {
                             .font(.caption)
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
-                        Text("Hans Wehr Dictionary search is only available when the translated or original text is a single Arabic word.")
+                        Text("Lexicon search is only available when the translated or original text is a single Arabic word.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -365,12 +381,12 @@ public struct PopupView: View {
                 }
                 
                 VStack(spacing: 6) {
-                    Text("Hans Wehr Dictionary")
+                    Text("Lexicon")
                         .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
                     
-                    Text("Translate or enter a single Arabic word to search the Hans Wehr Dictionary.")
+                    Text("Translate or enter a single Arabic word to search the Lexicon.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -390,6 +406,220 @@ public struct PopupView: View {
                     .stroke(Color.gray.opacity(0.15), lineWidth: 1)
             )
         }
+    }
+    
+    // MARK: - Lexicon Search
+    
+    private func searchDictionary(for word: String) async {
+        isDictionaryLoading = true
+        dictionaryError = nil
+        dictionaryResults = []
+        showingAllDictionaryResults = false
+        expandedDictionaryEntryID = nil
+        appState.statusMessage = "Looking up \"\(word)\"..."
+        
+        do {
+            let response = try await DictionaryService.shared.search(word: word)
+            dictionaryResults = response.sortedWords
+            dictionarySearchedWord = word
+            isDictionaryLoading = false
+            if response.words.isEmpty {
+                appState.statusMessage = "No dictionary entries for \"\(word)\""
+            } else {
+                appState.statusMessage = "Found \(response.words.count) dictionary entries"
+            }
+        } catch {
+            dictionaryError = error.localizedDescription
+            dictionarySearchedWord = word
+            isDictionaryLoading = false
+            appState.statusMessage = "Dictionary lookup failed"
+        }
+    }
+    
+    private var visibleDictionaryEntries: [DictionaryWord] {
+        showingAllDictionaryResults ? dictionaryResults : Array(dictionaryResults.prefix(6))
+    }
+    
+    @ViewBuilder
+    private func dictionaryResultsView(for word: String) -> some View {
+        if isDictionaryLoading {
+            HStack(spacing: 8) {
+                ProgressView()
+                    .scaleEffect(0.8)
+                Text("Looking up \"\(word)\"...")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding(8)
+        } else if let error = dictionaryError {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.orange)
+                    .font(.caption)
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding(8)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.orange.opacity(0.1))
+            )
+        } else if dictionarySearchedWord == word && dictionaryResults.isEmpty {
+            HStack(spacing: 8) {
+                Image(systemName: "book.closed")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+                Text("No dictionary entries found for \"\(word)\".")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding(8)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.gray.opacity(0.08))
+            )
+        } else if dictionarySearchedWord == word {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("\(dictionaryResults.count) entries")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    if dictionaryResults.count > 6 {
+                        Button(action: {
+                            withAnimation {
+                                showingAllDictionaryResults.toggle()
+                            }
+                        }) {
+                            Text(showingAllDictionaryResults ? "Show fewer" : "Show all \(dictionaryResults.count)")
+                                .font(.caption2)
+                                .foregroundColor(.accentColor)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                
+                ForEach(visibleDictionaryEntries) { entry in
+                    dictionaryEntryCard(entry)
+                }
+            }
+        }
+    }
+    
+    private func dictionaryEntryCard(_ entry: DictionaryWord) -> some View {
+        let isExpanded = expandedDictionaryEntryID == entry.id
+        
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(entry.text)
+                    .font(.system(size: 18, weight: .semibold, design: .serif))
+                    .textSelection(.enabled)
+                
+                Spacer()
+                
+                if !entry.form.isEmpty {
+                    Text("Form \(entry.form)")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor.opacity(0.12))
+                        .foregroundColor(.accentColor)
+                        .cornerRadius(4)
+                }
+                
+                Button(action: {
+                    appState.copyToPasteboard(entry.plainFullDefinition)
+                }) {
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Copy full definition")
+            }
+            
+            if !entry.transliteration.isEmpty {
+                Text("/\(entry.transliteration)/")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            if !entry.root.text.isEmpty {
+                HStack(spacing: 5) {
+                    Text("Root:")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Text(entry.root.text)
+                        .font(.system(size: 13, design: .serif))
+                        .textSelection(.enabled)
+                    if entry.root.wordCount > 0 {
+                        Text("(\(entry.root.wordCount) words, \(entry.root.formCount) forms)")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            
+            if !entry.plural.text.isEmpty {
+                HStack(spacing: 5) {
+                    Text("Plural:")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Text(entry.plural.text)
+                        .font(.system(size: 12, design: .serif))
+                        .textSelection(.enabled)
+                    if !entry.plural.transliteration.isEmpty {
+                        Text("/\(entry.plural.transliteration)/")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            
+            if !entry.plainShortDefinition.isEmpty {
+                Text(entry.plainShortDefinition)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+                    .textSelection(.enabled)
+            }
+            
+            if !entry.plainFullDefinition.isEmpty {
+                Text(entry.plainFullDefinition)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(isExpanded ? nil : 3)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Button(action: {
+                    withAnimation {
+                        expandedDictionaryEntryID = isExpanded ? nil : entry.id
+                    }
+                }) {
+                    Text(isExpanded ? "Show less" : "Show full definition")
+                        .font(.caption2)
+                        .foregroundColor(.accentColor)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(NSColor.textBackgroundColor).opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.gray.opacity(0.15), lineWidth: 1)
+        )
     }
     
     // MARK: - Direct Text Input Card

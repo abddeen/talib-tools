@@ -10,7 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         
         statusBarController = StatusBarController(appState: AppState.shared)
         
-        print("ArabicHelper started. Listening for shortcut: \(AppState.shared.preferences.shortcut.displayString)")
+        print("TalibTools started. Listening for shortcut: \(AppState.shared.preferences.shortcut.displayString)")
     }
     
     func applicationWillTerminate(_ notification: Notification) {
@@ -19,7 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 @main
-struct ArabicHelperMain {
+struct TalibToolsMain {
     static func main() {
         let app = NSApplication.shared
         let delegate = AppDelegate()

@@ -1,7 +1,7 @@
 import Testing
-@testable import ArabicHelper
+@testable import TalibTools
 
-@Suite("Translation Tabs and Hans Wehr Feature Tests")
+@Suite("Translation Tabs and Lexicon Feature Tests")
 struct TranslationTabsTests {
     
     @Test("TranslationTab cases and identifiers")
@@ -9,7 +9,7 @@ struct TranslationTabsTests {
         #expect(TranslationTab.allCases.count == 3)
         #expect(TranslationTab.translation.rawValue == "Translation")
         #expect(TranslationTab.vocab.rawValue == "Vocab")
-        #expect(TranslationTab.hansWehr.rawValue == "Hans Wehr")
+        #expect(TranslationTab.lexicon.rawValue == "Lexicon")
     }
     
     @Test("Single Arabic word extraction with various inputs")

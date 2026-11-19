@@ -3,7 +3,7 @@ import Foundation
 public enum TranslationTab: String, CaseIterable, Identifiable {
     case translation = "Translation"
     case vocab = "Vocab"
-    case hansWehr = "Hans Wehr"
+    case lexicon = "Lexicon"
     
     public var id: String { rawValue }
 }

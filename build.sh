@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-APP_NAME="ArabicHelper"
+APP_NAME="TalibTools"
 BUILD_DIR="build"
 APP_BUNDLE="${BUILD_DIR}/${APP_NAME}.app"
 CONTENTS_DIR="${APP_BUNDLE}/Contents"
@@ -18,10 +18,13 @@ build_app() {
     mkdir -p "${RESOURCES_DIR}"
     
     # Copy Info.plist
-    cp "Sources/ArabicHelper/Resources/Info.plist" "${CONTENTS_DIR}/Info.plist"
+    cp "Sources/TalibTools/Resources/Info.plist" "${CONTENTS_DIR}/Info.plist"
+    
+    # Copy app icon
+    cp "Sources/TalibTools/Resources/AppIcon.icns" "${RESOURCES_DIR}/AppIcon.icns"
     
     # Find all Swift files
-    SWIFT_FILES=$(find Sources/ArabicHelper -name "*.swift")
+    SWIFT_FILES=$(find Sources/TalibTools -name "*.swift")
     
     # Compile with swiftc
     CLANG_MODULE_CACHE_PATH="${MODULE_CACHE}" swiftc \

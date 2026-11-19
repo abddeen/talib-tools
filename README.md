@@ -1,6 +1,6 @@
-# 🌐 ArabicHelper — macOS Menu Bar Screen Translator
+# 🌐 TalibTools — macOS Menu Bar Screen Translator
 
-**ArabicHelper** is a native macOS menu bar app that lets you capture any section of your screen with a customizable global shortcut, automatically extracts the text using macOS Vision OCR, detects the source language, and translates the content simultaneously into **both Arabic and English** with an instant popup from the menu bar item.
+**TalibTools** is a native macOS menu bar app that lets you capture any section of your screen with a customizable global shortcut, automatically extracts the text using macOS Vision OCR, detects the source language, and translates the content simultaneously into **both Arabic and English** with an instant popup from the menu bar item.
 
 ---
 
@@ -13,6 +13,7 @@
 | **Automatic OCR & Language Detection** | Powered by Apple's **Vision framework** (`VNRecognizeTextRequestRevision3`) with support for Arabic, English, and 30+ languages. Automatic language identification via **NaturalLanguage framework** and Unicode script analysis. |
 | **Dual Translation (Arabic & English)** | Automatically identifies source text: <br>• If source is **Arabic**, displays original Arabic and translates to **English**.<br>• If source is **English**, displays original English and translates to **Arabic**.<br>• If source is **any other language** (French, German, Spanish, etc.), concurrently translates to **both Arabic and English**! |
 | **Direct Text Entry** | In addition to screenshots, users can directly type or paste text into the menu bar popup for immediate auto-detection and dual translation. Includes one-click paste from clipboard and `⌘ + Return` quick translate. |
+| **Lexicon** | When the original or translated text is a single Arabic word, the **Lexicon** tab can look it up via the Arabic Students Dictionary API, showing verb forms, roots, transliterations, plurals, and full definitions with copy support. Requires an internet connection. |
 | **Menu Bar Item & Popup** | Runs as a background accessory app (`LSUIElement = true`). Upon capture, automatically pops open a SwiftUI interface displaying both translations, RTL Arabic typography, one-click copy, audio pronunciation, and capture history. |
 
 ---
@@ -32,7 +33,7 @@ make
 ```bash
 ./build.sh run
 ```
-Or double-click `build/ArabicHelper.app` in Finder.
+Or double-click `build/TalibTools.app` in Finder.
 
 ### 3. (Optional) Install to Applications
 ```bash
@@ -58,23 +59,26 @@ Or double-click `build/ArabicHelper.app` in Finder.
 ## 📁 Project Architecture
 
 ```
-arabic-helper/
+talib-tools/
 ├── build.sh                               // Build & packaging script (creates .app bundle)
 ├── Makefile                               // Convenience make targets (build, run, install, clean)
 ├── Package.swift                          // Swift Package Manager configuration
 ├── Sources/
-│   └── ArabicHelper/
+│   └── TalibTools/
 │       ├── Main.swift                     // NSApplication & AppDelegate setup (LSUIElement)
 │       ├── AppState.swift                 // Central observable application coordinator
 │       ├── Models/
 │       │   ├── ShortcutModel.swift        // KeyCode & modifier abstraction with Carbon mapping
-│       │   ├── TranslationResult.swift    // Model holding capture, OCR, and dual translations
-│       │   └── UserPreferences.swift      // User settings (shortcut, auto-open, auto-copy)
+│       │   ├── TranslationResult.swift    // Model holding capture, OCR, translations & word extraction
+│       │   ├── TranslationTab.swift       // Translate / Vocab / Lexicon tab enum
+│       │   ├── UserPreferences.swift      // User settings (shortcut, auto-open, auto-copy)
+│       │   └── DictionaryModels.swift     // Codable models for the Lexicon dictionary API
 │       ├── Services/
 │       │   ├── HotKeyManager.swift        // Carbon global shortcut listener
 │       │   ├── ScreenCaptureService.swift // Interactive screen selection (/usr/sbin/screencapture)
 │       │   ├── OCRService.swift           // Vision VNRecognizeTextRequest & NaturalLanguage
 │       │   ├── TranslationService.swift   // Language detection & dual translation engine
+│       │   ├── DictionaryService.swift    // Lexicon dictionary API client
 │       │   └── SpeechService.swift        // Text-to-speech for Arabic (ar-SA) and English (en-US)
 │       ├── UI/
 │       │   ├── StatusBarController.swift  // NSStatusItem and NSPopover coordinator
@@ -84,7 +88,12 @@ arabic-helper/
 │       │   ├── SettingsView.swift         // Settings & preferences tab
 │       │   └── ShortcutRecorderView.swift // Interactive keyboard shortcut recorder
 │       └── Resources/
-│           └── Info.plist                 // Application metadata (LSUIElement = true)
+│           ├── Info.plist                 // Application metadata (LSUIElement = true)
+│           ├── AppIcon.icns               // App icon bundled into Contents/Resources
+│           └── AppIcon.png                // 2000x2000 source for regenerating the .icns
+└── Tests/
+    └── TalibToolsTests/
+        └── TalibToolsTests.swift          // Swift Testing unit tests
 ```
 
 ---

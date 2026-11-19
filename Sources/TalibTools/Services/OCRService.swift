@@ -17,7 +17,7 @@ public final class OCRService {
     public func recognizeText(from image: NSImage) async throws -> OCRResult {
         guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
             throw NSError(
-                domain: "ArabicHelper.OCR",
+                domain: "TalibTools.OCR",
                 code: 1,
                 userInfo: [NSLocalizedDescriptionKey: "Failed to obtain CGImage from NSImage"]
             )

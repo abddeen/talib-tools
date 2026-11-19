@@ -91,7 +91,7 @@ public struct SettingsView: View {
                 HStack {
                     Spacer()
                     VStack(spacing: 4) {
-                        Text("ArabicHelper v1.0")
+                        Text("TalibTools v1.0")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Text("Native macOS Menu Bar App")

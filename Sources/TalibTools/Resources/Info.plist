@@ -3,13 +3,15 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>com.hesham.ArabicHelper</string>
+    <string>com.hesham.TalibTools</string>
     <key>CFBundleName</key>
-    <string>ArabicHelper</string>
+    <string>TalibTools</string>
     <key>CFBundleDisplayName</key>
-    <string>ArabicHelper</string>
+    <string>TalibTools</string>
     <key>CFBundleExecutable</key>
-    <string>ArabicHelper</string>
+    <string>TalibTools</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -25,6 +27,6 @@
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
     <key>NSScreenCaptureUsageDescription</key>
-    <string>ArabicHelper captures screen selections to perform OCR and translate text.</string>
+    <string>TalibTools captures screen selections to perform OCR and translate text.</string>
 </dict>
 </plist>

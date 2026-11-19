@@ -118,7 +118,7 @@ public final class StatusBarController: NSObject {
         
         menu.addItem(NSMenuItem.separator())
         
-        let quitItem = NSMenuItem(title: "Quit ArabicHelper", action: #selector(menuQuitClicked), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit TalibTools", action: #selector(menuQuitClicked), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
         
@@ -145,35 +145,44 @@ public final class StatusBarController: NSObject {
         NSApplication.shared.terminate(nil)
     }
     
-    /// Generates a clean 18x18 status bar template icon showing an Arabic/English symbol
+    /// Generates a clean 18x18 status bar template icon showing a mosque silhouette
     private func createStatusBarIcon() -> NSImage {
         let size = NSSize(width: 18, height: 18)
-        let image = NSImage(size: size, flipped: false) { rect in
-            // Use SF Symbol if available, or custom draw "ع"
-            if let sfImage = NSImage(systemSymbolName: "character.book.closed.fill", accessibilityDescription: nil) {
-                sfImage.draw(in: rect)
-                return true
-            }
+        let image = NSImage(size: size, flipped: false) { _ in
+            NSColor.black.setFill()
             
-            // Fallback drawing
-            let path = NSBezierPath(roundedRect: NSRect(x: 1, y: 1, width: 16, height: 16), xRadius: 4, yRadius: 4)
-            NSColor.black.setStroke()
-            path.lineWidth = 1.2
-            path.stroke()
+            // Main building
+            NSBezierPath(rect: NSRect(x: 3, y: 2.5, width: 12, height: 4.5)).fill()
             
-            let attrs: [NSAttributedString.Key: Any] = [
-                .font: NSFont.boldSystemFont(ofSize: 10),
-                .foregroundColor: NSColor.black
-            ]
-            let str = "ع" as NSString
-            let strSize = str.size(withAttributes: attrs)
-            let strRect = NSRect(
-                x: (18 - strSize.width) / 2,
-                y: (18 - strSize.height) / 2,
-                width: strSize.width,
-                height: strSize.height
-            )
-            str.draw(in: strRect, withAttributes: attrs)
+            // Dome
+            let dome = NSBezierPath()
+            dome.move(to: NSPoint(x: 5, y: 7))
+            dome.appendArc(withCenter: NSPoint(x: 9, y: 7), radius: 4, startAngle: 0, endAngle: 180, clockwise: false)
+            dome.close()
+            dome.fill()
+            
+            // Finial on top of the dome
+            NSBezierPath(rect: NSRect(x: 8.5, y: 11, width: 1, height: 2)).fill()
+            
+            // Minarets
+            NSBezierPath(rect: NSRect(x: 2, y: 2.5, width: 2.2, height: 8)).fill()
+            NSBezierPath(rect: NSRect(x: 13.8, y: 2.5, width: 2.2, height: 8)).fill()
+            
+            // Pointed minaret caps
+            let leftCap = NSBezierPath()
+            leftCap.move(to: NSPoint(x: 1.7, y: 10.5))
+            leftCap.line(to: NSPoint(x: 3.1, y: 13.5))
+            leftCap.line(to: NSPoint(x: 4.5, y: 10.5))
+            leftCap.close()
+            leftCap.fill()
+            
+            let rightCap = NSBezierPath()
+            rightCap.move(to: NSPoint(x: 13.5, y: 10.5))
+            rightCap.line(to: NSPoint(x: 14.9, y: 13.5))
+            rightCap.line(to: NSPoint(x: 16.3, y: 10.5))
+            rightCap.close()
+            rightCap.fill()
+            
             return true
         }
         image.isTemplate = true

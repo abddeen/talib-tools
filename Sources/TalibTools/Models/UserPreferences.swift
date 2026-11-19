@@ -24,7 +24,7 @@ public struct UserPreferences: Codable, Sendable {
         self.playSoundOnCapture = playSoundOnCapture
     }
     
-    public static let defaultsKey = "ArabicHelper_Preferences"
+    public static let defaultsKey = "TalibTools_Preferences"
     
     public static func load() -> UserPreferences {
         if let data = UserDefaults.standard.data(forKey: defaultsKey),

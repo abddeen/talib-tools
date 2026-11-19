@@ -114,7 +114,7 @@ public final class TranslationService {
         guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
             let code = (response as? HTTPURLResponse)?.statusCode ?? 0
             throw NSError(
-                domain: "ArabicHelper.Translation",
+                domain: "TalibTools.Translation",
                 code: code,
                 userInfo: [NSLocalizedDescriptionKey: "Translation request failed with HTTP \(code)"]
             )
@@ -123,7 +123,7 @@ public final class TranslationService {
         let json = try JSONSerialization.jsonObject(with: data, options: [])
         guard let rootArray = json as? [Any] else {
             throw NSError(
-                domain: "ArabicHelper.Translation",
+                domain: "TalibTools.Translation",
                 code: 2,
                 userInfo: [NSLocalizedDescriptionKey: "Invalid JSON response structure"]
             )
